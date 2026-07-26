@@ -1,0 +1,81 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  skills:
+    name: skills are well-formed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Frontmatter Claude Code needs, and no in-repo identifiers
+        run: |
+          set -euo pipefail
+          fail=0
+          for dir in skills/*/; do
+            slug="$(basename "$dir")"; file="$dir/SKILL.md"
+            [ -f "$file" ] || { echo "::error::$dir has no SKILL.md"; fail=1; continue; }
+            fm="$(awk '/^---$/{n++; next} n==1' "$file")"
+            for key in name description; do
+              grep -qE "^$key:" <<<"$fm" || { echo "::error::$slug: missing '$key'"; fail=1; }
+            done
+            declared="$(grep -E '^name:' <<<"$fm" | head -1 | sed 's/^name:[[:space:]]*//')"
+            [ "$declared" = "$slug" ] || { echo "::error::$slug: frontmatter name is '$declared'"; fail=1; }
+          done
+          exit $fail
+      - name: No product name or local paths leaked back in
+        # These skills are public and generic on purpose; a re-introduced product
+        # name or an author's home-directory path is the regression to catch.
+        run: |
+          if grep -rniE 'trinity|/Users/[a-z]|/home/[a-z]' skills --include='*.md' \
+             | grep -vE '/users/\$|/users/:|`/users/' ; then
+            echo "::error::identifier or local path found in skills/"; exit 1
+          fi
+          echo "clean"
+
+  toc:
+    name: reference TOC links resolve
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every '## Contents' link points at a real heading
+        run: |
+          python3 - <<'PY'
+          import pathlib, re, sys
+          def slug(h):
+              s = re.sub(r'`|\*|\[|\]|\(|\)', '', h.strip().lower())
+              s = re.sub(r'[^\w\s-]', '', s)
+              return re.sub(r'\s+', '-', s).strip('-')
+          bad = 0
+          for r in sorted(pathlib.Path("skills").rglob("reference/*.md")):
+              txt = r.read_text()
+              if "## Contents" not in txt: continue
+              valid = {slug(l[3:]) for l in txt.splitlines() if l.startswith("## ")} | \
+                      {slug(l[4:]) for l in txt.splitlines() if l.startswith("### ")}
+              for m in re.finditer(r'^- \[.+?\]\(#([\w-]+)\)$', txt, re.M):
+                  if m.group(1) not in valid:
+                      print(f"::error::{r}: broken TOC link #{m.group(1)}"); bad += 1
+          sys.exit(1 if bad else 0)
+          PY
+
+  version-bump:
+    name: skills changed ⇒ version bumped
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: A shipped change must move the version
+        run: |
+          set -euo pipefail
+          base="${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'HEAD^' }}"
+          git rev-parse --verify "$base" >/dev/null 2>&1 || { echo "first commit — skipping"; exit 0; }
+          changed="$(git diff --name-only "$base" HEAD | grep -E '^(skills/|\.claude-plugin/|README\.md|LICENSE)' || true)"
+          [ -n "$changed" ] || { echo "no shipped content changed"; exit 0; }
+          was="$(git show "$base:.claude-plugin/plugin.json" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' || echo "")"
+          now="$(python3 -c 'import json; print(json.load(open(".claude-plugin/plugin.json"))["version"])')"
+          echo "version: $was -> $now"
+          [ "$was" != "$now" ] || { echo "::error::skills changed but version is still $now"; exit 1; }
+          grep -qF "## $now" CHANGELOG.md || { echo "::error::CHANGELOG.md has no '## $now' entry"; exit 1; }
