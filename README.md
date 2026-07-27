@@ -14,7 +14,7 @@ Each skill is a router `SKILL.md` plus standalone `reference/NN-*.md` chapters. 
 ## Install
 
 ```
-/plugin marketplace add trinity-ai-labs/orchestration-skills
+/plugin marketplace add trinity-ai-labs/claude-plugins
 /plugin install frameworks@trinity-ai-labs
 ```
 
