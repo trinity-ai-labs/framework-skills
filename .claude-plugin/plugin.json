@@ -3,7 +3,7 @@
   "name": "frameworks",
   "displayName": "Framework References",
   "description": "Deep, source-verified reference skills for Effect v3 and SolidJS. Claude invokes them automatically when writing, reading, or debugging code in either.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Trinity AI Labs",
     "url": "https://github.com/trinity-ai-labs"
