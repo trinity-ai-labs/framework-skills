@@ -85,13 +85,13 @@ Pinning stops a surprise; it does not make the eventual upgrade cheap. The secon
 
 ```ts
 // file: src/infra/Fetcher.ts. The only file in the reference app that imports effect/http.
-import { Context, Data, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import * as HttpClient from "effect/http/HttpClient"
 
-export class FetchError extends Data.TaggedError("FetchError")<{
-  readonly url: string
-  readonly cause: unknown
-}> {}
+export class FetchError extends Schema.TaggedError<FetchError>()("FetchError", {
+  url: Schema.String,
+  cause: Schema.Defect()
+}) {}
 
 // What the rest of the app sees: a small contract in the app's own terms.
 export class Fetcher extends Context.Service<Fetcher, {
