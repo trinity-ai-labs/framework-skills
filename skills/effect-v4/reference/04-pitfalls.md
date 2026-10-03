@@ -3,7 +3,7 @@
 
 > **When you reach for this:** something "doesn't run", runs once when you expected many, exits the process with no error, leaks a resource, or an `R` or `E` type will not resolve. These are the mistakes that cost time in `effect@4.0.0`, each with the fix beside it, and a closing section on reading a type that will not collapse.
 
-Every entry was checked against the installed `effect@4.0.0`: by compiling it, by running a program and reading what it printed, or by reading the source. Where upstream's migration guides and the published package disagree, the package wins and the entry says so. Entries are tagged **unchanged from v3**, **changed since v3** or **new in v4**. A reader coming from v3 should read the changed and new ones first. Examples assume the modules they use are imported from `effect`; a `❌` block is the wrong side and is never the thing to copy.
+Every entry was checked against the installed `effect@4.0.0`: by compiling it, by running a program and reading what it printed, or by reading the source. Where upstream's migration guides and the published package disagree, the package wins and the entry says so. Entries are tagged **unchanged from v3** (possibly with renamed API), **changed since v3** or **new in v4**. A reader coming from v3 should read the changed and new ones first. Upstream's `migration/` guides, cited below, are in the `Effect-TS/effect` repository at the tag `effect@4.0.0`, not in the installed package. Examples assume the modules they use are imported from `effect`; a `❌` block is the wrong side and is never the thing to copy.
 
 The bundled guide (`AGENTS.md` in the package root, and `ai-docs/`) already covers how to write services, errors and layers. This chapter does not repeat it; it records what goes wrong.
 
@@ -12,7 +12,7 @@ The bundled guide (`AGENTS.md` in the package root, and `ai-docs/`) already cove
 - [1. Building an effect is not running it](#1-building-an-effect-is-not-running-it)
 - [2. all and forEach are sequential by default](#2-all-and-foreach-are-sequential-by-default)
 - [3. Running effects inside effects](#3-running-effects-inside-effects)
-- [4. Throwing, try-catch and await inside gen](#4-throwing-try-catch-and-await-inside-gen)
+- [4. Throwing and try-catch inside gen](#4-throwing-and-try-catch-inside-gen)
 - [5. Swallowing errors with a catch-all](#5-swallowing-errors-with-a-catch-all)
 - [6. catchTag and catch do not see defects](#6-catchtag-and-catch-do-not-see-defects)
 - [7. Real timers, Date.now and Math.random](#7-real-timers-datenow-and-mathrandom)
@@ -33,7 +33,7 @@ The bundled guide (`AGENTS.md` in the package root, and `ai-docs/`) already cove
 - [22. A forked child ends with its parent](#22-a-forked-child-ends-with-its-parent)
 - [23. Leaning on an unstable export without pinning](#23-leaning-on-an-unstable-export-without-pinning)
 - [24. Importing through a pre-release path](#24-importing-through-a-pre-release-path)
-- [What v4 removed from the v3 list](#what-v4-removed-from-the-v3-list)
+- [What changed in the v3 list](#what-changed-in-the-v3-list)
 - [Diagnosing a messy E or R](#diagnosing-a-messy-e-or-r)
 - [See also](#see-also)
 
@@ -92,9 +92,9 @@ const handler = Effect.gen(function*() {
 
 If you must call back into Effect from foreign code that was started inside a run, capture the services with `Effect.context` and run with `Effect.runForkWith(services)`; upstream's `migration/runtime.md` has the pattern.
 
-## 4. Throwing, try-catch and await inside gen
+## 4. Throwing and try-catch inside gen
 
-**Changed since v3 in its names, not its behaviour.** The generator is not an `async` function. On 4.0.0:
+**Unchanged from v3, renamed wrappers.** The generator is not an `async` function. On 4.0.0:
 
 - `try`/`catch` around `yield*` does not catch a typed failure. The failure ends the generator and the `catch` block never runs.
 - A `throw` inside `gen` does not become a typed error. It becomes a defect (`Die`).
@@ -162,7 +162,7 @@ Defects should usually crash, so reach for these at a true boundary (a request h
 
 ## 7. Real timers, Date.now and Math.random
 
-**Unchanged from v3.** Reaching for the platform makes code uninterruptible and untestable. The Effect services are interruptible and controllable under the test clock.
+**Unchanged from v3.** Reaching for the platform makes code untestable, and its timers are not under the runtime's control. The Effect services are interruptible and controllable under the test clock.
 
 ```ts
 // ❌
@@ -257,7 +257,7 @@ const main = program.pipe(Effect.provide(AppLive))
 const isolated = program.pipe(Effect.provide(AppLive, { local: true }))
 ```
 
-Compose layers before providing; the guide calls the shared memo map "a safety net, not a substitute" for composition. How the graph is assembled is in [Architecture](03-architecture.md).
+Compose layers before providing; upstream's `migration/layer-memoization.md` calls the shared memo map "a safety net, not a substitute" for composition. How the graph is assembled is in [Architecture](03-architecture.md).
 
 ## 10. provide versus provideMerge
 
@@ -367,7 +367,7 @@ If `R` will not reach `never`, wire the missing layer. See the diagnosis section
 | a one-shot "wait for X" flag | `Deferred` |
 | `Promise.all` plus error juggling | `Effect.all` with `concurrency` |
 | `try`/`finally` cleanup | `Effect.acquireRelease`, `Effect.ensuring` |
-| your own `isRecord` or `isString` | the `Predicate` module (the bundled guide forbids writing these) |
+| your own `isRecord` or `isString` | the `Predicate` module, e.g. `Predicate.isObject` (the bundled guide forbids writing these) |
 | `Date.now()` and date maths | `Clock`, `DateTime` |
 | a hand-written config parser | `Config` plus `Schema` |
 
@@ -400,7 +400,7 @@ const loadName = Effect.fn("loadName")(function*(id: string) {
 
 ## 17. A program that only waits exits silently
 
-**New in v4 (a corrected claim).** Upstream's `migration/fiber-keep-alive.md` says the core runtime now keeps the process alive while a fiber is suspended. On `effect@4.0.0` under Node 22 it does not. These all let the process exit with code 0 after about 120 ms, without resolving:
+**New in v4 (contradicts upstream's guide).** Upstream's `migration/fiber-keep-alive.md` says the core runtime now keeps the process alive while a fiber is suspended. On `effect@4.0.0` under Node 22 it does not. These all let the process exit with code 0 at once, without resolving:
 
 - `Effect.runFork` and `Effect.runPromise` of a program that awaits a `Deferred` nobody completes
 - `Effect.runPromise(Effect.never)` (the promise never settles and the process leaves anyway)
@@ -448,11 +448,11 @@ const program = Effect.gen(function*() {
 })
 ```
 
-What still yields directly: an `Effect`, and a `Context.Service` class (to get the service). For anything else, check with the compiler rather than from memory.
+What still yields directly includes an `Effect`, a `Context.Service` class (to get the service) and a tagged error (to fail with it). For anything else, check with the compiler rather than from memory.
 
 ## 19. Reading a Cause as a tree
 
-**Changed since v3.** `Cause<E>` is no longer a tree with `Empty`, `Sequential` and `Parallel` nodes. It is a flat object holding `reasons`, each `Fail`, `Die` or `Interrupt`. A v3 `switch (cause._tag)` does not compile, and at run time `_tag` is `undefined`. On 4.0.0 `Effect.all` over a failure and a defect, run concurrently, produced `cause.reasons` of `["Fail"]` and no tree.
+**Changed since v3.** `Cause<E>` is no longer a tree with `Empty`, `Sequential` and `Parallel` nodes. It is a flat object holding `reasons`, each `Fail`, `Die` or `Interrupt`. A v3 `switch (cause._tag)` does not compile, and at run time `_tag` is `undefined`. On 4.0.0 `Effect.all` over a failure and a defect, run concurrently, produced a flat `cause.reasons` (which reason it held depended on which branch finished first) and no tree.
 
 ```ts
 // ❌ v3 shape: no _tag, no left or right.
@@ -545,9 +545,9 @@ import { HttpRouter } from "effect/unstable/http"
 import * as HttpRouter from "effect/http/HttpRouter"
 ```
 
-## What v4 removed from the v3 list
+## What changed in the v3 list
 
-- **v3's "Effect.Service is experimental".** Dropped. v3's `Service` on `Effect`, `Tag` on `Context` and `Effect`, and `GenericTag` are not exports of 4.0.0, and `Context.Service` is untagged (stable). The remaining service trap is [11](#11-service-key-collisions).
+- **v3's "Effect.Service is experimental".** Dropped, the only v3 entry with no v4 counterpart. v3's `Service` on `Effect`, `Tag` on `Context` and `Effect`, and `GenericTag` are not exports of 4.0.0, and `Context.Service` is untagged (stable). The remaining service trap is [11](#11-service-key-collisions).
 - **v3's "`Layer.fresh` overuse, or expecting fresh when it is memoized".** Kept but restated: sharing now crosses `provide` calls, and `local: true` is new. See [9](#9-layer-sharing-fresh-local-and-nested-provides).
 
 Renames in general are not a pitfall of their own: for one symbol, ask upstream's `migration/v3-to-v4.md` or [Coming from v3](01-coming-from-v3.md).
@@ -582,9 +582,8 @@ const step2: Effect.Effect<string, UserNotFound, UserRepo> = step1.pipe(Effect.m
 
 | Symptom | Usual cause |
 | --- | --- |
-| `R` contains a service you thought you provided | The provide was for a layer whose output did not include it, or you provided before the step that needs it (`Layer.provide` hides the provider; see 10) |
+| `R` contains a service you thought you provided | The layer you provided does not output it: read its `ROut`. `Layer.provide` hides the provider from the layer it feeds (see 10) |
 | `R` contains `Scope` | A scoped effect never got `Effect.scoped`. A layer built with `Layer.effect` removes `Scope` itself, so this is an effect, not a layer (see 8) |
-| `R` shows two services that look identical | Two classes declared with the same key string, or two classes for one service (see 11) |
 | `E` gained `UnknownError` | `Effect.try` or `Effect.tryPromise` without a `catch` mapping to a domain error (v3 called it `UnknownException`) |
 | `E` gained `SchemaError` | An unhandled `Schema.decodeUnknownEffect` (v3's `ParseError`) |
 | `E` gained `NoSuchElementError` | `Effect.fromOption` of a `None`, or another Option bridge |
@@ -592,9 +591,7 @@ const step2: Effect.Effect<string, UserNotFound, UserRepo> = step1.pipe(Effect.m
 | `Type 'Ref<…>' must have a '[Symbol.iterator]()' method` | You yielded a `Ref`, `Deferred` or `Fiber` directly; use `Ref.get`, `Deferred.await`, `Fiber.join` (see 18) |
 | `Property '[TypeId]' is missing in type 'None<…>'` | You passed an `Option` or `Result` where an `Effect` goes (see 18) |
 | `Cannot find module 'effect/unstable/…'` | A pre-release import path (see 24) |
-| Types pass but the run dies with `Service not found: <key>` | A cast hid an unprovided service (see 14), or two keys collided (see 11) |
-
-**4. Never silence it with `as any`.** The cast turns a compile-time failure into a defect on the first request, with the message in the last row above.
+| Types pass but the run dies with `Service not found: <key>` | A cast hid an unprovided service (see 14). Colliding keys do not do this: they resolve silently to the wrong value (see 11) |
 
 ## See also
 
