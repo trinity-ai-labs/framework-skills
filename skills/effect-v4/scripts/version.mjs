@@ -14,7 +14,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 const start = path.resolve(process.argv[2] ?? process.cwd())
-if (process.argv.length > 3 || start.startsWith("-")) {
+if (process.argv.length > 3 || process.argv[2]?.startsWith("-")) {
   console.error("usage: node version.mjs [dir]")
   process.exit(2)
 }
@@ -135,8 +135,14 @@ const fromPnpmLock = (text, root) => {
       if (v) return v
     }
   } else {
-    const v = directIn(0, lines.length, 4)
-    if (v) return v
+    // Older lockfiles (v5, v6) with a single project: top-level dependency sections, entries at indent 2.
+    for (let i = 0; i < lines.length; i++) {
+      if (!/^(dependencies|devDependencies|optionalDependencies):\s*$/.test(lines[i])) continue
+      let end = i + 1
+      while (end < lines.length && (!lines[end] || indent(lines[end]) > 0)) end++
+      const v = directIn(i + 1, end, 2)
+      if (v) return v
+    }
   }
   // Not a direct dependency of this importer: look at the resolved packages.
   const versions = new Set()
@@ -193,7 +199,9 @@ const fromBunLock = (text) => {
       while (i < text.length && text[i] !== "\n") i++
       out += "\n"
     } else if (c === "/" && text[i + 1] === "*") {
-      i = text.indexOf("*/", i + 2) + 1
+      const end = text.indexOf("*/", i + 2)
+      if (end < 0) throw new Error("unterminated block comment")
+      i = end + 1
     } else out += c
   }
   const lock = JSON.parse(out.replace(/,(\s*[}\]])/g, "$1"))

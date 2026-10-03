@@ -18,7 +18,7 @@
 import fs from "node:fs"
 import path from "node:path"
 
-const TIERS = ["stable", "experimental", "unstable"] // least to most volatile in what we report on a tie
+const TIERS = ["stable", "unstable", "experimental"] // least to most volatile (experimental may break in a patch); the most volatile wins a tie
 
 const fail = (message, code = 1) => {
   console.error(`stability: ${message}`)
@@ -72,7 +72,7 @@ const target = (value) => {
 const exportsMap = pkg.exports && typeof pkg.exports === "object" ? pkg.exports : {}
 let resolved
 if (subpath in exportsMap) {
-  resolved = exportsMap[subpath] === null ? null : target(exportsMap[subpath])
+  resolved = target(exportsMap[subpath])
 } else {
   let best = null
   for (const key of Object.keys(exportsMap)) {
@@ -87,7 +87,7 @@ if (subpath in exportsMap) {
   }
   if (best) {
     const matched = subpath.slice(best.prefix.length, subpath.length - best.suffix.length)
-    const t = exportsMap[best.key] === null ? null : target(exportsMap[best.key])
+    const t = target(exportsMap[best.key])
     resolved = t === null ? null : t.replace(/\*/g, matched)
   }
 }
@@ -103,7 +103,7 @@ if (!moduleFile || !fs.existsSync(moduleFile)) {
 // --- read the declarations of one .d.ts -----------------------------------------------
 const tagOf = (doc) => {
   if (!doc) return "stable"
-  const m = /^\s*\*\s*@stability\s+(\w+)/m.exec(doc)
+  const m = /^\s*(?:\/\*\*\s*|\*\s*)@stability\s+(\w+)/m.exec(doc)
   return m ? m[1].toLowerCase() : "stable"
 }
 
@@ -123,7 +123,7 @@ const parseFile = (file) => {
     const line = lines[i]
     if (line.startsWith("/**")) {
       const start = i
-      while (!lines[i].includes("*/")) i++
+      while (i + 1 < lines.length && !lines[i].includes("*/")) i++
       pending = lines.slice(start, i + 1).join("\n")
       continue
     }

@@ -32,7 +32,7 @@ It prints the version alone on stdout (for example `4.0.0`) and says on stderr w
 
 ### 2. Read the bundled guide: it is the source for API facts
 
-The installed package carries, at its root, `AGENTS.md` (the entry point; `CLAUDE.md` is an identical copy) and `ai-docs/` (examples organised by topic that `AGENTS.md` links to), plus `src/` and `dist/`. Open them in the package this project resolves, which is `node_modules/effect` in the directory step 1 named, or the nearest one above it.
+The installed package carries, at its root, `AGENTS.md` (the entry point; `CLAUDE.md` is an identical copy) and `ai-docs/` (examples organised by topic that `AGENTS.md` links to), plus `src/` and `dist/`. Open them in the package this project resolves, which is the `node_modules/effect` path step 1 printed on stderr after `installed in`. (When step 1 fell back to a lockfile there is no such path: use the upstream fallback below.)
 
 Read `AGENTS.md` first, then only the `ai-docs/` examples for the topic at hand. Prefer these and the package's own source to memory, to older blog posts, and to anything written for 3.x.
 
