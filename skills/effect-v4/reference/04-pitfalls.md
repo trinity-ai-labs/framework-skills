@@ -242,7 +242,7 @@ Measured on 4.0.0, counting how many times a layer's constructor ran:
 | `provide(L, { local: true })` inner, `provide(L)` outer | 2 |
 | `Layer.merge(L, Layer.fresh(L))` | 2 |
 
-The fourth row is the one to know. `local: true` builds with a private memo map and hands that map to everything inside the call, including `provide` calls nested in it, which then reuse it. Upstream's `migration/layer-memoization.md` comments its own `local` example as building twice; the outer-`local` order it shows measured once here. Put `local: true` on the call whose subtree must get its own instances.
+Rows three and four differ only in where `local: true` sits, and that difference is the one to know. `local: true` builds with a private memo map and hands that map to everything inside the call, including `provide` calls nested in it, which then reuse it. Upstream's `migration/layer-memoization.md` comments its own `local` example as building twice; the outer-`local` order it shows measured once here. Put `local: true` on the call whose subtree must get its own instances.
 
 ```ts
 // ❌ "To be safe": the pool is acquired twice.

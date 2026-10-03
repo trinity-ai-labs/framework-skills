@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "frameworks",
   "displayName": "Framework References",
-  "description": "Deep, source-verified reference skills for Effect v3 and SolidJS. Claude invokes them automatically when writing, reading, or debugging code in either.",
-  "version": "1.0.1",
+  "description": "Reference skills for Effect (v3 and v4, selected by the installed effect major) and SolidJS. Claude invokes them automatically when writing, reading, or debugging code in any of them.",
+  "version": "1.1.0",
   "author": {
     "name": "Trinity AI Labs",
     "url": "https://github.com/trinity-ai-labs"
@@ -11,5 +11,5 @@
   "homepage": "https://github.com/trinity-ai-labs/framework-skills",
   "repository": "https://github.com/trinity-ai-labs/framework-skills",
   "license": "MIT",
-  "keywords": ["effect", "effect-ts", "solidjs", "typescript", "reference"]
+  "keywords": ["effect", "effect-ts", "effect-v3", "effect-v4", "solidjs", "typescript", "reference"]
 }
