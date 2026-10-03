@@ -1609,6 +1609,7 @@
     {"bucket":"value","hash":"0a3b9e843d402fb4","kind":"const","name":"attributes","since":"4.0.0","stability":"stable"},
     {"bucket":"value","hash":"cc6100f5b84b4867","kind":"const","name":"getAttributes","since":"4.0.0","stability":"stable"},
     {"bucket":"value","hash":"1ba4be06289b1411","kind":"const","name":"getSeverity","since":"4.0.0","stability":"stable"},
+    {"bucket":"type","hash":"90a15e16c395e2c1","kind":"type","name":"ignore","since":"4.0.0","stability":"stable"},
     {"bucket":"value","hash":"fab760cab2a15fa9","kind":"const","name":"ignore","since":"4.0.0","stability":"stable"},
     {"bucket":"value","hash":"9eba5c12304a4311","kind":"const","name":"isIgnored","since":"4.0.0","stability":"stable"},
     {"bucket":"value","hash":"bbf695d2d9a57a64","kind":"const","name":"layer","since":"4.0.0","stability":"stable"},
@@ -3312,6 +3313,7 @@
    "exports": [
     {"bucket":"type","hash":"bc0f794ee105d99e","kind":"interface","name":"Teardown","since":"4.0.0","stability":"stable"},
     {"bucket":"value","hash":"30cf63db9688ac10","kind":"const","name":"defaultTeardown","since":"4.0.0","stability":"stable"},
+    {"bucket":"type","hash":"c6d92e2939328b42","kind":"type","name":"errorExitCode","since":"4.0.0","stability":"stable"},
     {"bucket":"value","hash":"c100f22b09ef9624","kind":"const","name":"errorExitCode","since":"4.0.0","stability":"stable"},
     {"bucket":"type","hash":"a9d25a4637f788ae","kind":"type","name":"errorReported","since":"4.0.0","stability":"stable"},
     {"bucket":"value","hash":"969653e34c3ed11b","kind":"const","name":"errorReported","since":"4.0.0","stability":"stable"},
@@ -3852,7 +3854,8 @@
     {"bucket":"value","hash":"bf7114d9a514a860","kind":"const","name":"Undefined","since":"3.10.0","stability":"stable"},
     {"bucket":"type","hash":"c4ad08f300538c5b","kind":"interface","name":"UndefinedOr","since":"3.10.0","stability":"stable"},
     {"bucket":"value","hash":"630163d942327afb","kind":"const","name":"UndefinedOr","since":"3.10.0","stability":"stable"},
-    {"bucket":"type","hash":"7cd36e2c6d3a5845","kind":"interface","name":"Union","since":"3.10.0","stability":"stable"},
+    {"bucket":"type","hash":"2df6a4a862a7f735","kind":"interface","name":"Union","since":"3.10.0","stability":"stable"},
+    {"bucket":"value","hash":"1ba801e7f58e3fa6","kind":"function","name":"Union","since":"3.10.0","stability":"stable"},
     {"bucket":"type","hash":"1ac68247f445398b","kind":"interface","name":"UniqueArray","since":"4.0.0","stability":"stable"},
     {"bucket":"value","hash":"c80f391298f7d934","kind":"function","name":"UniqueArray","since":"4.0.0","stability":"stable"},
     {"bucket":"type","hash":"fa8c4114ce4da985","kind":"interface","name":"UniqueSymbol","since":"4.0.0","stability":"stable"},
@@ -9254,7 +9257,8 @@
   "effect/reactivity/AtomHttpApi": {
    "barrel": false,
    "exports": [
-    {"bucket":"type","hash":"c6c0c903961ec3bc","kind":"interface","name":"AtomHttpApiClient","since":"4.0.0","stability":"unstable"}
+    {"bucket":"type","hash":"c6c0c903961ec3bc","kind":"interface","name":"AtomHttpApiClient","since":"4.0.0","stability":"unstable"},
+    {"bucket":"value","hash":"c5b68169306cd7c3","kind":"const","name":"Service","since":"4.0.0","stability":"unstable"}
    ]},
   "effect/reactivity/AtomRef": {
    "barrel": false,
@@ -9287,7 +9291,8 @@
   "effect/reactivity/AtomRpc": {
    "barrel": false,
    "exports": [
-    {"bucket":"type","hash":"65396c320c9e74c9","kind":"interface","name":"AtomRpcClient","since":"4.0.0","stability":"unstable"}
+    {"bucket":"type","hash":"65396c320c9e74c9","kind":"interface","name":"AtomRpcClient","since":"4.0.0","stability":"unstable"},
+    {"bucket":"value","hash":"c96a6056b40b20c7","kind":"const","name":"Service","since":"4.0.0","stability":"unstable"}
    ]},
   "effect/reactivity/Hydration": {
    "barrel": false,

@@ -82,6 +82,20 @@ class ParseForms(unittest.TestCase):
         with self.assertRaises(ValueError):
             tool.build_snapshot({"M.d.ts": "export default foo;\n"}, "1.0.0")
 
+    def test_declare_global_does_not_swallow_the_next_export(self):
+        from support import tool
+        snap = tool.build_snapshot({"M.d.ts": "declare global {\n    interface X {}\n}\nexport declare const y: number;\n"}, "1.0.0")
+        self.assertEqual([e["name"] for e in snap["modules"]["effect/M"]["exports"]], ["y"])
+
+    def test_brace_inside_a_class_head_does_not_end_the_statement(self):
+        from support import tool
+        src = ("export interface U<M> extends B<{ a: 1 }[number]> {\n    x: 1;\n}\n"
+               "export interface V<A extends { a: 1 } = {}> {\n}\n"
+               "export declare class W extends Q<{ a: 1 }> { z: 1 }\n"
+               "export declare const keep: 1;\n")
+        snap = tool.build_snapshot({"M.d.ts": src}, "1.0.0")
+        self.assertEqual([e["name"] for e in snap["modules"]["effect/M"]["exports"]], ["U", "V", "W", "keep"])
+
 
 if __name__ == "__main__":
     unittest.main()

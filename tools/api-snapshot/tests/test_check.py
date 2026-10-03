@@ -67,6 +67,22 @@ class CheckCommand(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("checked 0 chapters", out)
 
+    def test_relative_chapters_dir_inside_the_repo_does_not_crash(self):
+        import os
+        from support import tool as t
+        chapters = t.REPO_ROOT / "tools" / "api-snapshot" / "tests" / "fixtures" / "chapters"
+        old = os.getcwd()
+        os.chdir(t.REPO_ROOT)
+        try:
+            out, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = t.main(["check", "--chapters-dir", str(chapters.relative_to(t.REPO_ROOT)),
+                               "--api-dir", str(self.api)])
+        finally:
+            os.chdir(old)
+        self.assertEqual(code, 1)  # the fixture chapters include failing ones
+        self.assertIn("tools/api-snapshot/tests/fixtures/chapters/badsymbol.md", err.getvalue())
+
     def test_generated_files_in_subdirectories_are_not_chapters(self):
         (self.chapters / "changes").mkdir()
         shutil.copy(FIXTURES / "chapters" / "nostamp.md", self.chapters / "changes" / "4.1.0.md")

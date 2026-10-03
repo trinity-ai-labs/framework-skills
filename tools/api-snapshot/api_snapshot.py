@@ -28,8 +28,9 @@ DEFAULT_API_DIR = REPO_ROOT / "api" / "effect"
 DEFAULT_CHAPTERS_DIR = REPO_ROOT / "skills" / "effect-v4" / "reference"
 REGISTRY = "https://registry.npmjs.org"
 SCHEMA = 1
-STAMP_RE = re.compile(r"^<!-- verified: effect@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?) -->$")
-VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$")
+_SEMVER = r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?"
+STAMP_RE = re.compile(r"^<!-- verified: effect@(%s) -->$" % _SEMVER)
+VERSION_RE = re.compile("^%s$" % _SEMVER)
 
 # ---------------------------------------------------------------- parsing .d.ts
 #
@@ -45,7 +46,7 @@ _COMMENT_OR_STRING = re.compile(
     r"""(/\*.*?\*/|//[^\n]*)|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)""", re.S
 )
 _BLOCK_HEAD = re.compile(
-    r"(?:export\s+)?(?:declare\s+)?(?:abstract\s+)?(?:class|interface|namespace|module|enum|const\s+enum)\b"
+    r"(?:export\s+)?(?:declare\s+)?(?:abstract\s+)?(?:class|interface|namespace|module|enum|const\s+enum)\b|declare\s+global\b"
 )
 _DECL = re.compile(
     r"^(?P<export>export\s+)?(?:declare\s+)?(?:abstract\s+)?"
@@ -55,7 +56,7 @@ _DECL = re.compile(
 _EXPORT_LIST = re.compile(r"^export\s+(?P<type>type\s+)?\{", re.S)
 _EXPORT_STAR = re.compile(r"""^export\s+\*\s+(?:as\s+(?P<name>[\w$]+)\s+)?from\s+["'](?P<src>[^"']+)["']""")
 _FROM = re.compile(r"""\}\s*from\s*["']([^"']+)["']\s*;?\s*$""")
-_NEXT_NON_SPACE = re.compile(r"\s*")
+_REST_OF_LINE = re.compile(r"(?P<tail>[^\n]*)")
 
 BUCKET = {
     "const": "value", "let": "value", "var": "value", "function": "value",
@@ -96,15 +97,17 @@ def _statement_end(src, start):
     depth = 0
     for m in _SIG.finditer(src, start):
         t = m.group()
-        if t in "([{" and len(t) == 1:
+        if t in "([{":
             depth += 1
-        elif t in ")]}" and len(t) == 1:
+        elif t in ")]}":
             depth -= 1
             if depth == 0 and t == "}" and block:
-                k = _NEXT_NON_SPACE.match(src, m.end()).end()
-                nxt = src[k] if k < len(src) else ""
-                if nxt not in ("{", ">", ",", "&", "|", "("):  # `extends Foo<{..}> {` goes on
-                    return k + 1 if nxt == ";" else m.end()
+                # A block's closing brace ends its line (`}` or `};`); a brace in the
+                # head, as in `extends Foo<{..}[number]> {`, is followed by more code.
+                rest = _REST_OF_LINE.match(src, m.end())
+                tail = rest["tail"].strip()
+                if tail in ("", ";"):
+                    return m.end() + (rest["tail"].index(";") + 1 if tail else 0)
         elif t == ";" and depth == 0:
             return m.end()
     return len(src)
@@ -151,7 +154,7 @@ class ModuleParser:
             if m and (m["export"] or in_namespace):
                 self._declaration(m, doc, raw, text, prefix)
             elif m:
-                kind = re.sub(r"\s+", " ", m["kind"])
+                kind = m["kind"]
                 self.locals.setdefault(m["name"], []).append((kind, text))
             elif _EXPORT_LIST.match(text):
                 self._export_list(raw, text)
@@ -164,7 +167,7 @@ class ModuleParser:
                     raise ValueError("unrecognised export statement: " + text[:100])
 
     def _declaration(self, m, doc, raw, text, prefix):
-        kind = re.sub(r"\s+", " ", m["kind"])
+        kind = m["kind"]
         name = prefix + m["name"]
         self.add(name, kind, BUCKET[kind], doc, text)
         if kind == "namespace":
@@ -384,7 +387,7 @@ JS_STATICS = {
     "BigInt": {"asIntN", "asUintN", "prototype"},
     "Boolean": {"prototype"},
     "Function": {"prototype"},
-    "Symbol": {"iterator", "asyncIterator", "for", "keyFor", "hasInstance", "toPrimitive", "toStringTag", "prototype"},
+    "Symbol": {"iterator", "asyncIterator", "dispose", "asyncDispose", "for", "keyFor", "hasInstance", "toPrimitive", "toStringTag", "prototype"},
     "Error": {"captureStackTrace", "stackTraceLimit", "prototype"},
     "Date": {"now", "parse", "UTC", "prototype"},
     "Promise": {"all", "allSettled", "any", "race", "resolve", "reject", "withResolvers", "prototype"},
@@ -480,7 +483,7 @@ def cmd_check(args):
 
     failures = []
     for p in chapters:
-        shown = p.relative_to(REPO_ROOT) if REPO_ROOT in p.resolve().parents else p
+        shown = p.resolve().relative_to(REPO_ROOT) if REPO_ROOT in p.resolve().parents else p
         failures += check_chapter(shown, p.read_text(encoding="utf-8"), load)
     print("checked %d chapter%s in %s" % (len(chapters), "" if len(chapters) == 1 else "s", chapters_dir))
     for f in failures:
