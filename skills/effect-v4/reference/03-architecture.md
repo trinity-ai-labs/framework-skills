@@ -260,7 +260,7 @@ export const runtime = ManagedRuntime.make(AppLayer, { memoMap })
 // On shutdown: await runtime.dispose()
 ```
 
-**A long-lived program goes through `runMain`.** Upstream's `migration/fiber-keep-alive.md` says v4 builds the process keep-alive into the core runtime, so a program that only waits on a `Deferred` stays up without `runMain`. On 4.0.0 it does not: `Effect.runPromise` of an effect that is suspended on a never-completed `Deferred`, and `Effect.runFork(Effect.never)`, let a Node process exit with code 0 straight away, with the promise never settling. The same program under `NodeRuntime.runMain` keeps running until it is interrupted. The keep-alive timer is installed by `Runtime.makeRunMain`, which the platform `runMain` functions are built on. Fibers that are waiting on a timer (`Effect.sleep`, a schedule) keep Node alive on their own, which is why this failure shows up only for programs that wait on something other than a timer, such as a deferred. So the edge's job is more than "run once": `runMain` is also what, per upstream's guide, listens for `SIGINT` and `SIGTERM` and interrupts the root fiber (so scoped layers release), sets the exit code and reports unhandled errors. The signal handling was checked: an interrupt sent to a `runMain` program ended it. Do not replace it with `runPromise` in a service that is meant to stay up.
+**A long-lived program goes through `runMain`.** It is what listens for `SIGINT` and `SIGTERM` and interrupts the root fiber (so scoped layers release), sets the exit code and reports unhandled errors. On 4.0.0 a program that only waits exits unless it runs under `runMain`; see [Pitfalls](04-pitfalls.md) item 17 for the measurements. Do not replace it with `runPromise` in a service that is meant to stay up.
 
 The corollary for the rest of the code is the v3 one. `Effect.runPromise` and `Effect.runSync` inside business logic discard the surrounding context, interruption and tracing. And there is no `Runtime<R>` value to pass around any more: in v4 that type is gone (upstream's `migration/runtime.md`). If a callback needs to run an effect with the current services, capture them with `Effect.context` and run with `Effect.runForkWith`; if a host needs to run many effects, give it a `ManagedRuntime`.
 
@@ -463,8 +463,6 @@ Adopt it inward-out; a half-converted codebase is a legitimate place to rest. Pi
 ---
 
 ## Project setup
-
-Verified against npm and the upstream repository for 4.0.0; anything that could not be established is left out.
 
 - **`strict: true`.** Effect's inference leans on strict null checks and variance. Upstream's own base configuration (`tsconfig.base.json` at the `effect@4.0.0` tag) also sets `target` `ES2022`, `module` `NodeNext`, `verbatimModuleSyntax`, `exactOptionalPropertyTypes`, `noUnusedLocals` and `noImplicitOverride`. Those are the settings the library is built with, a good default for a new project and not a requirement for using it. The `ai-docs` examples import with `.ts` extensions (`from "../domain/User.ts"`), which upstream supports with `rewriteRelativeImportExtensions`.
 - **ESM.** The package is `"type": "module"` and reaches its modules through an `exports` map (`effect/Effect`, `effect/http`, and so on), which `moduleResolution` `NodeNext` resolves.

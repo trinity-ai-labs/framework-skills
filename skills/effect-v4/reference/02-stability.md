@@ -27,11 +27,10 @@ Upstream adds one rule that is easy to miss: **an export that exposes a third-pa
 
 ## The tier is per export, so look it up
 
-Moving the unstable modules to ordinary paths did not stabilize them, and it removed the one cheap signal. Four things follow, all true of 4.0.0:
+Moving the unstable modules to ordinary paths did not stabilize them, and it removed the one cheap signal. Three things follow, all true of 4.0.0:
 
 - **A stable module can hold unstable exports.** The root `Schema` module is stable, but 120 of its 686 recorded entries (a value and its type counted separately) are tagged `unstable`: the network-address schemas such as `IpAddress`, the cookie, header and URL-parameter schemas among them. `String` from the same module is stable.
 - **A module group can mix.** `effect/encoding` holds `Base64` and `Hex`, which are stable, beside `Sse` and `Ndjson`, which are not. `effect/testing` has the stable `TestClock` and the unstable `TestSchema`.
-- **A single module can mix.** In `effect/http-api/HttpApiClient`, two type members are stable and the rest of the module is not.
 - **Upstream's own list of unstable modules is not complete or current.** `MIGRATION.md` lists a `jsonschema` group; in 4.0.0 `effect/JsonSchema` is a root module with no unstable export. It leaves out a group the package tags wholesale (`effect/net`). The router's list is a version-stamped hint for the same reason.
 
 So the tier is never inferred from a path, a module name or a list. Ask the installed package, with the router's script:
@@ -137,13 +136,10 @@ The same applies to a single unstable export in an otherwise stable module: re-e
 
 ## When the installed version is newer than anything recorded
 
-Each chapter's first line is `<!-- verified: effect@<version> -->`, the release it was checked against. This chapter's judgments (the tiers, the policy, the shape of the discipline) outlast a release; the specific facts it cites (which export is unstable, what a module contains) are stamped to the version in that line and can be out of date against a newer install.
+The router's step 5 (`../SKILL.md`) is the procedure. What this chapter adds: its judgments (the tiers, the policy, the shape of the discipline) outlast a release, while the specific facts it cites (which export is unstable, what a module contains) are stamped to the version on line 1 and can be out of date against a newer install.
 
-The router's step 5 is the procedure: compare the installed version (`scripts/version.mjs`) with the stamp, and read `reference/changes/<version>.md` for each release after it. These files are generated from a diff of the published packages, grouped by stability tier, so read the unstable and experimental sections first.
-
-- **If a release has no file there, say so**, and do not guess what changed. The installed package is the source of truth: its `AGENTS.md`, its `ai-docs/` and the type definitions, plus the stability script for what you rely on. A chapter's statement about an export that your install contradicts is the chapter's error.
-- Upstream's own record is `MIGRATION.md` and `migration/` at the release tag in `Effect-TS/effect`, and its `packages/tools/api-diff` is the tool that produces an API diff between two versions.
 - After the bump, re-run the stability script for each unstable export you depend on. A tier can move in either direction, and an export you wrapped may have become stable (the wrapper can go) or been removed.
+- Upstream's own record is `MIGRATION.md` and `migration/` at the release tag in `Effect-TS/effect`, and its `packages/tools/api-diff` is the tool that produces an API diff between two versions.
 
 ---
 

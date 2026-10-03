@@ -14,7 +14,7 @@ description: >-
 
 # Effect v3 — the bible
 
-A thorough, source-verified reference for the **Effect v3 line** (the `effect` library) and its ecosystem — verified against **`effect@3.22.0`** (the 3.x line's newest release is 3.22.2; v4 is the current stable major). Every API here was checked against the actual source, backstopped by the official docs and best-practice research.
+A thorough, source-verified reference for the **Effect v3 line** (the `effect` library) and its ecosystem — verified against **`effect@3.22.0`** (v4 is the current stable major). Every API here was checked against the actual source, backstopped by the official docs and best-practice research.
 
 **How to use this skill:** this file is the router. Read the short *mental model* and *how to think* sections below to orient, then open the one `reference/NN-*.md` file for the topic at hand — each is a deep, standalone chapter. Don't load them all; load the one you need.
 

@@ -25,9 +25,10 @@ This skill does not restate Effect's API. An Effect 4.x package ships its own gu
 node <skill-dir>/scripts/version.mjs <directory of the file you are editing>
 ```
 
-It prints the version alone on stdout (for example `4.0.0`) and says on stderr where it found it. It walks up through every `node_modules` as Node does, so in a monorepo each package gets its own answer: resolve per package, never once for the repository.
+It prints the version alone on stdout (for example `4.0.0`) and says on stderr where it found it. It walks up through every `node_modules` as Node does, so in a monorepo each package gets its own answer: resolve per package.
 
 - **A `3.x` result: stop and use the `effect-v3` skill.** Nothing below applies to a 3.x install, and v3 and v4 idioms must not be mixed.
+- **A major later than 4, or a pre-release such as `4.0.0-rc.N`:** this skill was not written for it. Tell the person you work for; rely on the installed docs (step 2). The chapters were checked against 4.x.
 - **Nothing installed:** it falls back to the version a lockfile pins (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, text `bun.lock`) and says so; install dependencies to confirm. A binary `bun.lockb` it cannot read, and it says that too. It exits non-zero with a message when no version resolves; then read the `effect` range in the nearest `package.json`, and ask before guessing a major.
 
 ### 2. Read the bundled guide: it is the source for API facts
@@ -44,7 +45,7 @@ Read `AGENTS.md` first, then only the `ai-docs/` examples for the topic at hand.
 node <skill-dir>/scripts/stability.mjs <module> <export> [--from <directory>]
 ```
 
-`<module>` is the import specifier and `<export>` the name exported from it. `--from` is where to resolve `effect` from (default: the current directory; pass the directory from step 1 in a monorepo). It prints `stable`, `unstable` or `experimental`, read from the `@stability` tag on that export in the installed type definitions, and exits non-zero with a message for a module or export that does not exist or an install that is not 4.x.
+`<module>` is the import specifier and `<export>` the name exported from it. `<export>` is a top-level export name; for a namespace member (`Namespace.member`), look up the namespace. `--from` is where to resolve `effect` from (default: the current directory; pass the directory from step 1 in a monorepo). It prints `stable`, `unstable` or `experimental`, read from the `@stability` tag on that export in the installed type definitions, and exits non-zero with a message for a module or export that does not exist or an install that is not 4.x.
 
 **Run it for every export you have not already looked up, and especially for anything outside the core root modules or that exposes a third-party dependency.** Stability is a property of the export, not of the module or the import path: a stable module can hold unstable exports, and a group can mix stable and unstable modules. Do not infer a tier from a module's name or from a list, and do not carry one over from another version; look it up.
 
@@ -67,18 +68,4 @@ To port an existing v3 codebase to v4, this skill is not the tool: Effect mainta
 
 ### 5. Check for version drift before you trust a chapter
 
-Each chapter's first line is `<!-- verified: effect@<version> -->`, the release it was checked against. When the installed version (step 1) is newer than a chapter's stamp, open `reference/changes/<version>.md` for each release after the stamp up to and including the installed one, and read what changed before relying on the chapter. A changes file names the two versions it compares, and a release published between them is folded into it, so a release with no file of its own may be covered by the next file up: read its header before concluding nothing was recorded. Where no file covers a release, say so and trust the installed docs from step 2 over the chapter.
-
----
-
-## Reference index
-
-| Path | What it is |
-| --- | --- |
-| `reference/01-coming-from-v3.md` | Orientation for a reader with v3 habits |
-| `reference/02-stability.md` | Working with the stability tiers |
-| `reference/03-architecture.md` | Laying out an Effect 4 codebase |
-| `reference/04-pitfalls.md` | Recurring mistakes |
-| `reference/changes/<version>.md` | What changed in one release, by stability tier |
-| `scripts/version.mjs` | Step 1 |
-| `scripts/stability.mjs` | Step 3 |
+Each chapter's first line is `<!-- verified: effect@<version> -->`, the release it was checked against. When the installed version (step 1) is newer than a chapter's stamp, open `reference/changes/<version>.md` for each release after the stamp up to and including the installed one, and read what changed before relying on the chapter. A changes file names the two versions it compares, and a release published between them is folded into it, so a release with no file of its own may be covered by the next file up: read its header before concluding nothing was recorded. Where no file covers a release, say so and trust the installed docs from step 2 over the chapter. A changes file records the export surface only, so a chapter's measured runtime claim is not covered: re-test it where it matters, or trust the installed docs.

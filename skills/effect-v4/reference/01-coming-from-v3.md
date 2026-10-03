@@ -201,7 +201,7 @@ See [Pitfalls](04-pitfalls.md), item 18.
 
 **Now, per upstream:** `migration/fiber-keep-alive.md` says the keep-alive moved into the core fiber runtime, so a bare `Effect.runPromise` of a suspended program stays alive.
 
-**On 4.0.0 as published, that is not what happens.** Running `Effect.runPromise` or `Effect.runFork` over `Effect.never`, or over a `Deferred` nobody completes, exits with status 0 immediately. The only keep-alive timer in the package is installed by `Runtime.makeRunMain`, the runner factory that `NodeRuntime.runMain` is built on; a program run through `NodeRuntime.runMain` over `Effect.never` stays alive until signalled. Upstream's own test for this (`EffectKeepAlive.test.ts` at the tag) exercises `makeRunMain`, not `runPromise`. So the v3 rule survives: **the long-running entry point goes through `runMain`**, which also gives you signal handling, exit codes and error reporting.
+**On 4.0.0 as published, that holds only under `runMain`.** The long-running entry point goes through `runMain`, which also gives you signal handling, exit codes and error reporting.
 
 **Drop the habit** of believing either version of the story without running it. If your program's lifetime depends on a suspended fiber, run it through `runMain`; do not rely on `runPromise` to hold the process open.
 
@@ -217,7 +217,7 @@ See [Pitfalls](04-pitfalls.md), item 17, for the measurements.
 
 **Now.** The memo map is shared, so a layer provided more than once is built once. Opt out per layer with `Layer.fresh`, or per provide with the new `{ local: true }` option.
 
-The sharing has limits (it reaches nested provides, not sibling programs, and upstream's own `{ local: true }` example comment does not match the package), and the measured table is in [Pitfalls](04-pitfalls.md), "Layer sharing". Count builds in a test when isolation matters; do not trust the option name.
+The sharing has limits (it reaches nested provides, not sibling programs, and upstream's own `{ local: true }` example comment does not match the package), and the measured table is in [Architecture](03-architecture.md#layer-memoization-changes-how-the-graph-is-assembled). Count builds in a test when isolation matters; do not trust the option name.
 
 ```ts
 import { Context, Effect, Layer } from "effect"
@@ -234,7 +234,7 @@ const program = Effect.gen(function*() {
 const main = program.pipe(Effect.provide(Db.layer))
 
 // `local: true` builds the layer with a private memo map. Where it sits decides
-// what it isolates, so verify by counting builds (see Pitfalls, "Layer sharing").
+// what it isolates, so verify by counting builds (see the layer memoization section of Architecture).
 const isolated = program.pipe(Effect.provide(Db.layer, { local: true }))
 ```
 

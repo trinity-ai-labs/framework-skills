@@ -33,7 +33,7 @@ The bundled guide (`AGENTS.md` in the package root, and `ai-docs/`) already cove
 - [22. A forked child ends with its parent](#22-a-forked-child-ends-with-its-parent)
 - [23. Leaning on an unstable export without pinning](#23-leaning-on-an-unstable-export-without-pinning)
 - [24. Importing through a pre-release path](#24-importing-through-a-pre-release-path)
-- [What changed in the v3 list](#what-changed-in-the-v3-list)
+- [How these differ from the v3 pitfalls](#how-these-differ-from-the-v3-pitfalls)
 - [Diagnosing a messy E or R](#diagnosing-a-messy-e-or-r)
 - [See also](#see-also)
 
@@ -232,17 +232,7 @@ What changed: v3's scoped layer constructor is gone (`scoped` is not exported by
 
 **Changed since v3.** In v3 every `Effect.provide` call had its own memo scope, so the same layer provided twice was built twice. In 4.0.0 the memo map is shared between `provide` calls, so it is built once. Two traps follow: reaching for `Layer.fresh` "to be safe" and double-acquiring a pool, and expecting `{ local: true }` to isolate more than it does.
 
-Measured on 4.0.0, counting how many times a layer's constructor ran:
-
-| Pipeline | Builds |
-| --- | --- |
-| `provide(L)` then `provide(L)` | 1 |
-| `provide(L)` then `provide(Layer.fresh(L))`, either order | 2 |
-| `provide(L)` inner, `provide(L, { local: true })` outer | 1 |
-| `provide(L, { local: true })` inner, `provide(L)` outer | 2 |
-| `Layer.merge(L, Layer.fresh(L))` | 2 |
-
-Rows three and four differ only in where `local: true` sits, and that difference is the one to know. `local: true` builds with a private memo map and hands that map to everything inside the call, including `provide` calls nested in it, which then reuse it. Upstream's `migration/layer-memoization.md` comments its own `local` example as building twice; the outer-`local` order it shows measured once here. Put `local: true` on the call whose subtree must get its own instances.
+Where `{ local: true }` sits decides what it isolates. On the outer provide, everything nested beneath it shares its private memo map; put it on the call whose subtree must get its own instances. The measured table of arrangements is in [Architecture](03-architecture.md#layer-memoization-changes-how-the-graph-is-assembled).
 
 ```ts
 // ❌ "To be safe": the pool is acquired twice.
@@ -356,7 +346,7 @@ If `R` will not reach `never`, wire the missing layer. See the diagnosis section
 
 ## 15. Reinventing primitives
 
-**Changed since v3 in its names.** Before hand-rolling, look for the library's own. Every name here was looked up in the 4.0.0 snapshot.
+**Changed since v3 in its names.** Before hand-rolling, look for the library's own. Every name here was checked against `effect@4.0.0`.
 
 | You wrote | Use instead |
 | --- | --- |
@@ -545,7 +535,7 @@ import { HttpRouter } from "effect/unstable/http"
 import * as HttpRouter from "effect/http/HttpRouter"
 ```
 
-## What changed in the v3 list
+## How these differ from the v3 pitfalls
 
 - **v3's "Effect.Service is experimental".** Dropped, the only v3 entry with no v4 counterpart. v3's `Service` on `Effect`, `Tag` on `Context` and `Effect`, and `GenericTag` are not exports of 4.0.0, and `Context.Service` is untagged (stable). The remaining service trap is [11](#11-service-key-collisions).
 - **v3's "`Layer.fresh` overuse, or expecting fresh when it is memoized".** Kept but restated: sharing now crosses `provide` calls, and `local: true` is new. See [9](#9-layer-sharing-fresh-local-and-nested-provides).
