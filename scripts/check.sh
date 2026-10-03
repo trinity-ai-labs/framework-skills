@@ -25,9 +25,10 @@ check_frontmatter() {
 }
 
 # These skills are public and generic on purpose; a re-introduced product name
-# or an author's home-directory path is the regression to catch.
+# or an author's home-directory path is the regression to catch. Every text
+# file under skills/ is read (-I skips binaries), scripts included.
 check_sweep() {
-  if grep -rniE 'trinity|/Users/[a-z]|/home/[a-z]' skills --include='*.md' \
+  if grep -rniIE 'trinity|/Users/[a-z]|/home/[a-z]' skills \
      | grep -vE '/users/\$|/users/:|`/users/' ; then
     echo "::error::identifier or local path found in skills/"
     return 1
