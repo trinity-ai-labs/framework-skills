@@ -56,6 +56,17 @@ sys.exit(1 if bad else 0)
 PY
 }
 
+# The API snapshot tool's own tests, offline.
+check_api_tool_tests() {
+  python3 -m unittest discover -s tools/api-snapshot/tests
+}
+
+# Chapters under skills/effect-v4/reference/ name only exports their stamped
+# version has, per the committed api/effect/<version>.json snapshots.
+check_chapter_symbols() {
+  python3 tools/api-snapshot/api_snapshot.py check
+}
+
 run() {
   echo "== $1"
   if ! "$2"; then
@@ -67,4 +78,6 @@ run() {
 run "skill frontmatter and directory names" check_frontmatter
 run "no product name or local paths" check_sweep
 run "reference TOC links resolve" check_toc
+run "api-snapshot tool tests" check_api_tool_tests
+run "chapter symbols exist in their stamped version" check_chapter_symbols
 echo "all checks passed"
