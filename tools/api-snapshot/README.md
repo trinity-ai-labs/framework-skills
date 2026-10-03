@@ -2,7 +2,7 @@
 
 Records what the published `effect` package exports and at which stability, and
 rejects a chapter that names an export its stamped version does not have.
-Python 3.10+, standard library only. Run it as `python3 tools/api-snapshot/api_snapshot.py <command>`.
+Python 3.9 or later, standard library only. Run it as `python3 tools/api-snapshot/api_snapshot.py <command>`.
 
 | Command | Does | Network |
 |---|---|---|
@@ -14,7 +14,7 @@ Python 3.10+, standard library only. Run it as `python3 tools/api-snapshot/api_s
 
 Exit codes: `0` success; `1` a problem found (check failures, download or parse error); `2` bad command line.
 `check` takes `--chapters-dir` and `--api-dir`; `snapshot` takes `--api-dir` and `--tarball <file>` (offline).
-`watch` takes `--repo-root`, `--api-dir`, `--changes-dir`, `--latest <version>` (skip the registry lookup) and
+`watch` takes `--repo-root` (it reads and writes `api/effect/`, the changes directory, `.claude-plugin/plugin.json` and `CHANGELOG.md` under it), `--latest <version>` (skip the registry lookup) and
 `--tarball <file>`, so its whole path runs offline in tests. It ends with a `recorded: <version>` line when it
 changed something. `.github/workflows/effect-release-watch.yml` runs it daily and opens the pull request.
 The JSON layout is private; drive the tool through the command line.

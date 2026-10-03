@@ -10,7 +10,7 @@ Usage (run `--help` on any command for its options):
   api_snapshot.py check                  fail on a chapter naming an export its stamped version lacks
 
 Exit codes: 0 success; 1 the command ran and found a problem (check failures,
-download or parse errors); 2 bad command line.  Python 3.10+, standard library only.
+download or parse errors); 2 bad command line.  Python 3.9 or later, standard library only.
 Only `snapshot` and `watch` touch the network.  The JSON layout is private to this tool:
 drive it through the command line.
 """
@@ -451,8 +451,7 @@ def render_changes(a, b, command=None):
             lines += [_change_line(c) for c in rows if c["module"] == spec]
             lines.append("")
     lines += ["## Added", "",
-              "%d export%s and %d module%s added; additions break nobody and are not listed. "
-              "Run `api_snapshot.py diff` on the same two snapshots to list them."
+              "%d export%s and %d module%s added; additions break nobody and are not listed."
               % (added_exports, "" if added_exports == 1 else "s", added_mods, "" if added_mods == 1 else "s"), ""]
     return "\n".join(lines)
 
@@ -524,8 +523,8 @@ def add_changelog_section(text, plugin_version, effect_version, prev_version, ch
 
 def cmd_watch(args):
     root = Path(args.repo_root)
-    api_dir = Path(args.api_dir) if args.api_dir else root / "api" / "effect"
-    changes_dir = Path(args.changes_dir) if args.changes_dir else root / "skills" / "effect-v4" / "reference" / "changes"
+    api_dir = root / "api" / "effect"
+    changes_dir = root / "skills" / "effect-v4" / "reference" / "changes"
     manifest, changelog = root / ".claude-plugin" / "plugin.json", root / "CHANGELOG.md"
     try:
         latest = args.latest or registry_latest()
@@ -551,10 +550,7 @@ def cmd_watch(args):
         print("nothing changed: effect@%s is the newest snapshot, and no earlier one exists to compare with" % latest)
         return 0
     prev = older[-1]
-    try:
-        changes_rel = changes_file.resolve().relative_to(root.resolve()).as_posix()
-    except ValueError:
-        changes_rel = changes_file.name
+    changes_rel = changes_file.relative_to(root).as_posix()
     try:
         changelog_text = changelog.read_text(encoding="utf-8")
     except OSError as err:
@@ -611,13 +607,6 @@ JS_STATICS = {
     "Boolean": {"prototype"},
     "Function": {"prototype"},
     "Symbol": {"iterator", "asyncIterator", "dispose", "asyncDispose", "for", "keyFor", "hasInstance", "toPrimitive", "toStringTag", "prototype"},
-    "Error": {"captureStackTrace", "stackTraceLimit", "prototype"},
-    "Date": {"now", "parse", "UTC", "prototype"},
-    "Promise": {"all", "allSettled", "any", "race", "resolve", "reject", "withResolvers", "prototype"},
-    "Object": {"keys", "values", "entries", "assign", "freeze", "fromEntries", "create", "defineProperty",
-               "getPrototypeOf", "setPrototypeOf", "getOwnPropertyNames", "is", "prototype"},
-    "Math": {"max", "min", "floor", "ceil", "round", "abs", "pow", "sqrt", "random", "trunc", "sign", "log", "PI"},
-    "JSON": {"parse", "stringify"},
 }
 FILE_EXTENSIONS = {"ts", "tsx", "js", "mjs", "cjs", "json", "md", "d", "map"}
 _QUALIFIED = re.compile(r"(?<![\w$./@\"'-])([A-Z][A-Za-z0-9_]*)\.([A-Za-z_$][\w$]*)")
@@ -750,8 +739,6 @@ def build_parser():
                                    "skipped, so re-running changes nothing more. "
                                    "Follows `latest` only; a prerelease is never recorded.")
     w.add_argument("--repo-root", default=str(REPO_ROOT), help="repository root holding .claude-plugin and CHANGELOG.md")
-    w.add_argument("--api-dir", help="default: <repo-root>/api/effect")
-    w.add_argument("--changes-dir", help="default: <repo-root>/skills/effect-v4/reference/changes")
     w.add_argument("--latest", help="use this as the registry's latest version instead of asking npm (tests, offline)")
     w.add_argument("--tarball", help="read this local .tgz for the new version instead of downloading (tests, offline)")
     w.set_defaults(fn=cmd_watch)
