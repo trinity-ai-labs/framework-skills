@@ -5,7 +5,7 @@
 
 The argument is the one that held in v3. Code is good when it is easy to change. `Effect<A, E, R>` makes a function's dependencies, failures and effects visible in its type, which lets you build modules that hide a lot behind a small interface and have the compiler check the boundary. What v4 changes is the machinery around that argument: one service constructor, no generated layers, fewer packages, an unstable tier you have to place somewhere, and layer memoization that now crosses `Effect.provide` calls.
 
-The examples use "the reference app": a small user service over SQL. Paths such as `ai-docs/src/01_effect/03_services/20_layer-composition.ts` are inside the installed `effect` package.
+The examples use "the reference app": a small user service over SQL. Paths beginning `ai-docs/` are inside the installed `effect` package. The `migration/*.md` guides this chapter cites are not shipped in it: they are in the `Effect-TS/effect` repository at the `effect@4.0.0` tag.
 
 ## Contents
 
@@ -85,16 +85,13 @@ What this chapter adds is the judgment around that shape.
 The wiring of an Effect program is a typed value: the composition of its layers. The shape of that graph is the architecture, and the compiler checks that it is complete.
 
 ```text
-              AppConfig            (leaf: reads configuration)
+                 Db                (scoped: owns the connection)
                   │
                   ▼
-                 Db                (scoped: owns the connection)
-          ┌───────┴────────┐
-          ▼                ▼
-      UserRepo         Reporting
-          │
-          ▼
-     UserService
+              UserRepo
+                  │
+                  ▼
+             UserService
 ```
 
 Each edge is a `Layer.provide`. One file assembles them. The two combinators that matter are in `ai-docs/.../20_layer-composition.ts`: `Layer.provide` feeds a layer's requirements and exposes only the layer itself, `Layer.provideMerge` feeds them and keeps the provided services in the output too. Reach for `provideMerge` when something above the graph (a migrator, a test) needs the lower service as well.
@@ -139,7 +136,7 @@ export const AppLayer = UserService.layer.pipe(
 
 What falls out of it: one place to read what the application depends on; a `RIn` of `never` as the "fully wired" check; and a swap point at every node. A different layer for the same service replaces the whole subtree above it, which is the test seam, the dev-versus-production seam and the in-memory-versus-database seam at once.
 
-`App.ts` is a file in the layout below, not a convention you have to remember, because services leave their requirements open. A service whose `layer` quietly provides its own concrete dependencies is easier to launch alone, but it imports the implementation of its neighbour, hides that edge from the graph, and needs a second `layerNoDeps` for every test. Use the wired form for a leaf that has exactly one possible dependency (a config service, say), not as the default.
+`App.ts` is a file in the layout below, not a convention you have to remember, because services leave their requirements open. A service whose `layer` quietly provides its own concrete dependencies is easier to launch alone, but it imports the implementation of its neighbour, hides that edge from the graph, and needs a second, open variant for every test. Use the wired form for a leaf that has exactly one possible dependency (a config service, say), not as the default.
 
 ### Layer memoization changes how the graph is assembled
 
@@ -208,7 +205,7 @@ Running `nested` prints `db: acquire`, `orders: build`, `users: build`, `run`, `
 | Two `ManagedRuntime.make` calls, default options | once per runtime |
 | Two `ManagedRuntime.make` calls given one `memoMap` | once, released when the last runtime is disposed |
 
-Upstream's guide comments that `{ local: true }` on the second provide in a pipe builds twice. In the order measured here (the local provide outermost) it built once, because a provide builds its layer in a map forked from the one the fiber already carries and passes that map down to every provide inside it. Sharing flows inward, from an outer provide to the ones nested beneath it, and it is keyed on the layer value, not on the service it provides. Trust a run over the comment, and run it again after an upgrade (see [Stability](02-stability.md)).
+Upstream's guide comments that `{ local: true }` on the second provide in a pipe builds twice. In the order measured here (the local provide outermost) it built once, because a plain provide builds its layer in a map forked from the one the fiber already carries and passes that map down to every provide inside it, while `{ local: true }` starts from a fresh, unrelated map that the provides inside it then fork from. Sharing flows inward, from an outer provide to the ones nested beneath it, and it is keyed on the layer value, not on the service it provides. Trust a run over the comment, and run it again after an upgrade (see [Stability](02-stability.md)).
 
 What this changes about where code goes:
 
@@ -246,7 +243,7 @@ program.pipe(
 Three entry shapes cover most programs:
 
 - **A job or a CLI:** `NodeRuntime.runMain` (the Node runner lives in `@effect/platform-node`, the Bun one in `@effect/platform-bun`). `ai-docs/src/01_effect/06_running/10_run-main.ts`.
-- **A server or a worker, where the whole application is layers:** build one layer that does the work and run it with `Layer.launch`. The HTTP server, the background workers and the metrics exporter are all layers. `ai-docs/src/01_effect/06_running/20_layer-launch.ts`.
+- **A server or a worker, where the whole application is layers:** build one layer that does the work, turn it into the entry effect with `Layer.launch`, and run that with `runMain`. A long-running fiber is a scoped layer too (`Layer.effectDiscard` with `Effect.forkScoped`, in `ai-docs/src/01_effect/05_resources/20_layer-side-effects.ts`), so closing the scope interrupts it. The HTTP server, the background workers and the metrics exporter are all layers. `ai-docs/src/01_effect/06_running/20_layer-launch.ts`.
 - **A host you do not control** (a web framework, a test runner, a serverless handler): build one `ManagedRuntime` from `AppLayer` and run effects through it. `ai-docs/src/04_integration/10_managed-runtime.ts`.
 
 ```ts
@@ -268,7 +265,7 @@ export const runtime = ManagedRuntime.make(AppLayer, { memoMap })
 The corollary for the rest of the code is the v3 one. `Effect.runPromise` and `Effect.runSync` inside business logic discard the surrounding context, interruption and tracing. And there is no `Runtime<R>` value to pass around any more: in v4 that type is gone (upstream's `migration/runtime.md`). If a callback needs to run an effect with the current services, capture them with `Effect.context` and run with `Effect.runForkWith`; if a host needs to run many effects, give it a `ManagedRuntime`.
 
 ❌ Don't call `Effect.runPromise` from a service and `await` it.
-✅ Do thread the effect up and run it once, at the entry point, with `runMain`, `Layer.launch` or a `ManagedRuntime`.
+✅ Do thread the effect up and run it once, at the entry point, with `runMain` (around `Layer.launch` for a layer-shaped application) or a `ManagedRuntime`.
 
 ---
 
@@ -300,7 +297,7 @@ export class EmailAlreadyTaken extends Schema.TaggedError<EmailAlreadyTaken>()("
 }) {}
 ```
 
-**One error per service, with a `reason`, when the failure modes are many.** A service that can fail in a dozen ways does not need a dozen entries in every signature above it. v4 adds first-class support for a tagged error whose `reason` field is a union of tagged errors, with `Effect.catchReason`, `Effect.catchReasons` and `Effect.unwrapReason` to recover. The example is `ai-docs/src/01_effect/04_errors/20_reason-errors.ts`, and the users handler fixture in `ai-docs/src/51_http-server/fixtures/server/` (its `http.ts`) shows the edge using it to map a repository's reasons onto HTTP outcomes.
+**One error per service, with a `reason`, when the failure modes are many.** A service that can fail in a dozen ways does not need a dozen entries in every signature above it. v4 adds first-class support for a tagged error whose `reason` field is a union of tagged errors, with `Effect.catchReason`, `Effect.catchReasons` and `Effect.unwrapReason` to recover. The example is `ai-docs/src/01_effect/04_errors/20_reason-errors.ts`, and the server fixtures in `ai-docs/src/51_http-server/fixtures/` show the edge using it to map a repository's reasons onto HTTP outcomes.
 
 ```ts
 import { Effect, Schema } from "effect"
@@ -400,20 +397,18 @@ export class Db extends Context.Service<Db, {
   // The driver is part of the boundary: callers never see SqlClient in R.
   static readonly layerSqlite = (filename: string) =>
     this.layer.pipe(
-      Layer.provide(SqliteClient.layer({ filename })),
-      // A database that cannot open at startup is fatal, not recoverable.
-      Layer.orDie
+      Layer.provide(SqliteClient.layer({ filename }))
     )
 }
 ```
 
-When `effect/sql` changes in a minor release, this file is the diff. The rest of the application sees `Db`, `DbError` and the types it declared. Three leaks are worth checking for in review, because each carries an unstable type across the boundary without an import: the error channel (`SqlError` in a service's `E`), the requirements (`SqlClient` in a layer's `RIn`) and a parameter or return type taken from the module. The wrapper above converts the first with `mapError`, hides the second by providing the driver, and uses only plain types for the third. A wrapper that merely re-exports the unstable module is a barrel and protects nothing.
+When `effect/sql` changes in a minor release, this file is the diff. The rest of the application sees `Db`, `DbError` and the types it declared. Three leaks are worth checking for in review, because each carries an unstable type across the boundary without an import: the error channel (`SqlError` in a service's `E`), the requirements (`SqlClient` in a layer's `RIn`) and a parameter or return type taken from the module. The wrapper above converts the first with `mapError`, `layerSqlite` hides the second by providing the driver, and uses only plain types for the third. A wrapper that merely re-exports the unstable module is a barrel and protects nothing.
 
 **Do not wrap more than you use.** A wrapper that mirrors the whole unstable API is a second API to maintain. Expose the handful of operations the application calls, in the application's terms.
 
 **Inbound: confine the framework to the edge.** An `HttpApi` definition, a CLI command tree or an RPC group is the edge by nature, and hiding it behind an interface would only be indirection. Put it in `edge/` and let it call into services. Keep the unstable surface out of what the services return: handlers decode a request into domain types, call a service, and encode the result, and no service signature mentions `HttpServerRequest` or an endpoint type.
 
-**Keep unstable modules out of `domain/`.** The place it creeps in is `Model.Class` from `effect/schema`: the SQL example uses it, it is unstable, and `Schema.Class` from `effect/Schema` is stable. If a persistence model is worth having, define it in `infra/` and map it to the domain class, so a domain type never depends on a version-sensitive module.
+**Keep unstable modules out of `domain/`.** The place it creeps in is `Model.Class` from the lowercase `effect/schema` group (not the `effect/Schema` module): the SQL example uses it, it is unstable, and `Schema.Class` from `effect/Schema` is stable. If a persistence model is worth having, define it in `infra/` and map it to the domain class, so a domain type never depends on a version-sensitive module.
 
 **Make the rule checkable.** A lint rule restricting imports (ESLint's `no-restricted-imports` does this) that bans the unstable specifiers outside `infra/` and `edge/` turns the layout into something a reviewer does not have to hold in their head, and an upgrade's blast radius is then a list of two directories. Write the allowed specifiers down once. The list lives in the lint config, and `stability.mjs` is how you decide what belongs on it.
 
@@ -430,7 +425,7 @@ Domain code and services should be Effect all the way down, because that is wher
 | A promise-returning SDK | `Effect.tryPromise`, and name the failure |
 | A callback or an event emitter | `Effect.callback` |
 | Untrusted input (HTTP body, file, message) | `Schema.decodeUnknownEffect` into a typed value or a `SchemaError` |
-| Configuration and secrets | `Config` with `Config.Redacted`, provided through a layer (`ai-docs/.../20_layer-unwrap.ts`) |
+| Configuration and secrets | `Config` with `Config.Redacted`, provided through a layer (`20_layer-composition.ts` in the services examples uses `Config.Redacted`; `20_layer-unwrap.ts` builds a layer from configuration) |
 | An `Option` or a `Result` you hold | `Effect.fromOption` and `Effect.fromResult`; neither is yieldable in `Effect.gen` on 4.0.0, whatever `migration/yieldable.md` says |
 | A UI framework or a web handler | a `ManagedRuntime`; the framework-specific atom bindings (`@effect/atom-*`) where they exist |
 | Time and randomness | `Clock`, `Effect.sleep`, `DateTime.now`, `Random`; never `Date.now` or `Math.random`, so `TestClock` can drive the code |
@@ -474,7 +469,7 @@ Verified against npm and the upstream repository for 4.0.0; anything that could 
 - **`strict: true`.** Effect's inference leans on strict null checks and variance. Upstream's own base configuration (`tsconfig.base.json` at the `effect@4.0.0` tag) also sets `target` `ES2022`, `module` `NodeNext`, `verbatimModuleSyntax`, `exactOptionalPropertyTypes`, `noUnusedLocals` and `noImplicitOverride`. Those are the settings the library is built with, a good default for a new project and not a requirement for using it. The `ai-docs` examples import with `.ts` extensions (`from "../domain/User.ts"`), which upstream supports with `rewriteRelativeImportExtensions`.
 - **ESM.** The package is `"type": "module"` and reaches its modules through an `exports` map (`effect/Effect`, `effect/http`, and so on), which `moduleResolution` `NodeNext` resolves.
 - **`@effect/language-service`.** The editor plugin still exists (0.87.3 on npm when this was verified) and its diagnostics list a v4 column, including an `outdatedApi` check for APIs removed or renamed in v4. Add it under `compilerOptions.plugins` as `{ "name": "@effect/language-service" }`, and select the workspace TypeScript in your editor. Upstream's README says that on TypeScript 7 or newer you use `@effect/tsgo` instead.
-- **Packages a typical application installs.** `effect` carries the core and the consolidated former packages: `effect/http`, `effect/http-api`, `effect/rpc`, `effect/sql`, `effect/cluster` and `effect/cli` are subpaths of it. What stays separate and must match `effect`'s version exactly (all share one number, so `effect@4.0.0` goes with `@effect/platform-node@4.0.0`):
+- **Packages a typical application installs.** `effect` carries the core and the consolidated former packages: `effect/http`, `effect/http-api`, `effect/rpc`, `effect/sql`, `effect/cluster` and `effect/cli` are subpaths of it. What stays separate and are released on the same version number as `effect` (so `effect@4.0.0` goes with `@effect/platform-node@4.0.0`), and upstream's migration guide says to bump them together:
   - `@effect/platform-node` (or `@effect/platform-bun`): `runMain` and the HTTP server and client backends.
   - a driver such as `@effect/sql-sqlite-node` or `@effect/sql-pg`.
   - `@effect/vitest` for tests, which has `vitest` as a peer dependency (its range was `>=5.0.0 <6.0.0` when this was verified).
