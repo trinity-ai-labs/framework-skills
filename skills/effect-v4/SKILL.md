@@ -67,7 +67,7 @@ To port an existing v3 codebase to v4, this skill is not the tool: Effect mainta
 
 ### 5. Check for version drift before you trust a chapter
 
-Each chapter's first line is `<!-- verified: effect@<version> -->`, the release it was checked against. When the installed version (step 1) is newer than a chapter's stamp, open `reference/changes/<version>.md` for each release after the stamp up to and including the installed one, and read what changed before relying on the chapter. Where a release has no file there, say so and trust the installed docs from step 2 over the chapter.
+Each chapter's first line is `<!-- verified: effect@<version> -->`, the release it was checked against. When the installed version (step 1) is newer than a chapter's stamp, open `reference/changes/<version>.md` for each release after the stamp up to and including the installed one, and read what changed before relying on the chapter. A changes file names the two versions it compares, and a release published between them is folded into it, so a release with no file of its own may be covered by the next file up: read its header before concluding nothing was recorded. Where no file covers a release, say so and trust the installed docs from step 2 over the chapter.
 
 ---
 
