@@ -8,10 +8,15 @@ Python 3.10+, standard library only. Run it as `python3 tools/api-snapshot/api_s
 |---|---|---|
 | `snapshot <version>` | Downloads `effect@<version>` from the npm registry (integrity-checked) and writes `api/effect/<version>.json`. Deterministic: sorted, no timestamps, so two runs are byte-identical and release diffs read in git. | yes |
 | `diff <a.json> <b.json>` | Markdown on stdout: modules and exports added, removed and changed, grouped by stability tier (`stable` first). | no |
+| `changes <a.json> <b.json>` | Markdown on stdout: the content of a `skills/effect-v4/reference/changes/<version>.md` file. Removed and changed exports tagged anything but `stable`, grouped by module; then removed or changed stable exports in their own section (a semver break); then a count of additions (they break nobody, so they are not listed; use `diff` for them). Names both versions, says it is generated, and carries no `verified` stamp. | no |
+| `watch` | The release watcher: compares the registry's `latest` `effect` with the newest `api/effect/*.json` (by semver). Equal: prints that nothing changed and touches nothing. Newer: writes its snapshot, writes the changes file against the previous snapshot, bumps the PATCH version in `.claude-plugin/plugin.json` and prepends a `## <version>` section to `CHANGELOG.md`. Safe to re-run. Follows `latest` only, never a prerelease. | yes (the registry, and the tarball unless `--tarball`) |
 | `check` | For each `*.md` directly in `skills/effect-v4/reference/`: reads the stamp on line 1, loads that version's snapshot, and fails naming `file:line` and `Module.symbol` for each unknown export. Prints how many chapters it checked; none is exit 0. | no |
 
 Exit codes: `0` success; `1` a problem found (check failures, download or parse error); `2` bad command line.
 `check` takes `--chapters-dir` and `--api-dir`; `snapshot` takes `--api-dir` and `--tarball <file>` (offline).
+`watch` takes `--repo-root`, `--api-dir`, `--changes-dir`, `--latest <version>` (skip the registry lookup) and
+`--tarball <file>`, so its whole path runs offline in tests. It ends with a `recorded: <version>` line when it
+changed something. `.github/workflows/effect-release-watch.yml` runs it daily and opens the pull request.
 The JSON layout is private; drive the tool through the command line.
 
 ## What is recorded
