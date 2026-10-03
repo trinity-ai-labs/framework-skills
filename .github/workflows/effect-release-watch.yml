@@ -33,11 +33,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.event.repository.default_branch || 'main' }}
       - name: Record a new effect release, if there is one
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
         run: |
           set -euo pipefail
           python3 tools/api-snapshot/api_snapshot.py watch | tee "$RUNNER_TEMP/watch.log"
@@ -48,13 +48,13 @@ jobs:
           fi
           branch="chore/effect-$version"
 
-          # A branch, or any pull request (open or closed), already exists for this release: leave it be.
-          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
-            echo "Branch $branch already exists; nothing more to do."
-            exit 0
-          fi
+          # A pull request (open or closed) or a branch already exists for this release: leave it be.
           if [ -n "$(gh pr list --state all --head "$branch" --json number --jq '.[].number')" ]; then
             echo "A pull request for $branch already exists; nothing more to do."
+            exit 0
+          fi
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "::warning::Branch $branch exists with no pull request, most likely because an earlier run could not open one (Settings > Actions > General > Workflow permissions > 'Allow GitHub Actions to create and approve pull requests'). Open the pull request from the branch by hand, or delete the branch and re-run."
             exit 0
           fi
 
