@@ -1,6 +1,16 @@
 # Changelog
 
-Versions are the `version` field in `.claude-plugin/plugin.json`. Because that field is set, an installed plugin only picks up changes when it **changes** — pushing to `main` alone ships nothing. CI enforces the bump.
+Versions are the `version` field in `.claude-plugin/plugin.json`. Because that field is set, an installed plugin only picks up changes when it **changes** — pushing to `main` alone ships nothing. CI enforces the bump for a change reaching `main`; a pull request into any other branch is not held to it.
+
+## 1.1.0
+
+- **New skill: `effect-v4`** (`/frameworks:effect-v4`) for projects on `effect` 4.x. It is a router, not an API reference: it resolves the installed `effect` version from the file being edited (`scripts/version.mjs`), sends you to the `AGENTS.md` and `ai-docs/` the installed package ships, and looks up an export's `@stability` tier before you rely on it (`scripts/stability.mjs`). Four chapters hold what the package's docs do not: coming from v3, working with unstable APIs, architecture, and recurring pitfalls. Each is stamped with the `effect` release it was checked against, and `reference/changes/` records what each later release removed or changed.
+- **The chapters follow the published `effect@4.0.0` package where upstream's migration guides differ from it.** The process keep-alive happens only under `runMain` (`Effect.runFork(Effect.never)` exits at once); `Option` and `Result` are not yieldable in `Effect.gen`, so `Effect.fromOption` and `Effect.fromResult` bridge them; and one layer-memoization example's comment does not match measured behaviour, so the chapters carry measured tables instead.
+- **`effect-v3` and `effect-v4` are chosen by the installed `effect` major.** `effect-v3` now routes a 4.x project to `effect-v4`, and says v4 is the current stable major rather than a beta; its description no longer says v4 is out of scope. A 3.x install is handed from `effect-v4` to `effect-v3`. Neither teaches migration: upgrading a codebase is Effect's own `effect-v3-to-v4` skill (`Effect-TS/skills`).
+- **API snapshot tool and a symbol check on the chapters.** `tools/api-snapshot/` records what a published `effect` release exports, and at which stability, in `api/effect/<version>.json` (`4.0.0` is committed). A chapter must open with `<!-- verified: effect@<version> -->` and may name only exports that version has; the check fails naming file, line and symbol.
+- **Release watcher.** `.github/workflows/effect-release-watch.yml` runs daily and opens a pull request per new `effect` release: the snapshot, a generated changes file, a patch bump of this plugin and a changelog section. It needs the repository setting "Allow GitHub Actions to create and approve pull requests".
+- **`scripts/check.sh` is the one local check** (`bash scripts/check.sh`), the same checks CI runs. Its identifier sweep now reads every text file under `skills/`, scripts included, not only Markdown.
+- **The version bump is owed only by a change reaching `main`.** A pull request into another base is no longer held to it.
 
 ## 1.0.1
 
