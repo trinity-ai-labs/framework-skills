@@ -1,9 +1,9 @@
 <!-- verified: effect@4.0.0 -->
 # Coming from v3: the habits to drop
 
-> **When you reach for this:** you know Effect 3 well, you are about to write or read Effect 4 code, and your hands keep typing something that no longer exists or no longer means what it did. This chapter names the shifts that change a habit and says where the authoritative per-symbol answer lives. It is orientation, not a rename table, and it is not a migration guide: to port a codebase, use Effect's own `effect-v3-to-v4` skill (in `Effect-TS/skills`) and the guides listed below.
+> **When you reach for this:** you know Effect v3 well, you are about to write or read Effect 4 code, and your hands keep typing something that no longer exists or no longer means what it did. This chapter names the shifts that change a habit and says where the authoritative per-symbol answer lives. It is orientation, not a rename table, and it is not a migration guide: to port a codebase, use Effect's own `effect-v3-to-v4` skill (in `Effect-TS/skills`) and the guides listed below.
 
-The programming model did not change. `Effect<A, E, R>`, `Layer`, `Schema`, `Stream` and `Effect.gen` are what you know. What changed is how packages are laid out, how services are declared, a handful of renamed families, and a few places where v3 behaviour was an accident that v4 removed. Each shift below is **what it was, what it is now, the habit to drop, and the upstream guide it traces to**.
+The programming model did not change. `Effect<A, E, R>`, `Layer`, `Schema`, `Stream` and `Effect.gen` are what you know. What changed is how packages are laid out, how services are declared, a handful of renamed families, and a few places where v3 behavior was an accident that v4 removed. Each shift below is **what it was, what it is now, the habit to drop, and the upstream guide it traces to**.
 
 Everything here was checked against the published `effect@4.0.0`, not only against upstream's guides. In three places the package and the guide disagree (the process keep-alive, what `yield*` accepts, and one layer-isolation example). Those are called out where they occur, and where they disagree the installed package wins.
 
@@ -46,7 +46,7 @@ Treat the installed package as the tiebreaker. The upstream skills and guides we
 
 **Was.** `effect` and its siblings (`@effect/platform`, `@effect/rpc`, `@effect/cluster`, `@effect/sql`, and so on) were separate packages with independent version numbers, and working out which `@effect/platform` went with which `effect` was a task in itself.
 
-**Now.** The platform, rpc, cluster, http-api, cli, sql core and similar code moved into `effect` itself, and every ecosystem package that remains separate shares `effect`'s version: with `effect@4.0.0`, the matching driver is `@effect/sql-pg@4.0.0`. The packages that stay separate are platform-specific (`@effect/platform-*`), provider-specific (`@effect/sql-*` drivers, `@effect/ai-*`, `@effect/opentelemetry`), technology-specific (`@effect/atom-*`, `@effect/vitest`).
+**Now.** The platform, rpc, cluster, http-api, cli and sql code, among others, moved into `effect` itself, and every package that remains separate shares `effect`'s version: with `effect@4.0.0`, the matching driver is `@effect/sql-pg@4.0.0`. The packages that stay separate are platform-specific (`@effect/platform-*`), provider-specific (`@effect/sql-*` drivers, `@effect/ai-*`, `@effect/opentelemetry`), and technology-specific (`@effect/atom-*`, `@effect/vitest`).
 
 The consolidated code is imported by path under `effect/`: `effect/http/HttpRouter`, `effect/ai/LanguageModel`. During the pre-release the same modules lived under `effect/unstable/<group>/...`; **that segment no longer exists** and there are no compatibility exports for it. A guide, a blog post or a skill that still shows an `effect/unstable/` specifier predates 4.0.0.
 
@@ -68,7 +68,7 @@ The consolidated code is imported by path under `effect/`: `effect/http/HttpRout
 - Calling a service method statically. The accessor proxy erased generics and overloads, which is why it was removed.
 - Reaching for `use` as the default. It hides the dependency at the call site; `yield*` in a generator keeps it visible.
 
-How to define one is covered, with runnable examples, by the package's own `AGENTS.md` ("Writing Effect services") and not repeated here.
+None of the v3 constructors exist in 4.0.0, so a search for them in the installed package finds nothing. How to define one is covered, with runnable examples, by the package's own `AGENTS.md` ("Writing Effect services") and not repeated here.
 
 **Upstream:** `migration/services.md`.
 
@@ -104,6 +104,8 @@ const describe = (cause: Cause.Cause<string>) => {
 
 **Drop the habit** of recursing over `left` and `right`, and of branching on `Sequential` or `Parallel`. Iterate `reasons`. A `*Exception` error class is now `*Error` (`Cause.TimeoutError`), and a few were removed outright; look the specific one up.
 
+See [Pitfalls](04-pitfalls.md), item 19, for the failing form.
+
 **Upstream:** `migration/cause.md`.
 
 ---
@@ -126,7 +128,7 @@ const recovered = Effect.fail(42).pipe(
 )
 ```
 
-**Drop the habit** of typing `catchAll`. In v4 the plain name `Effect.catch` is the catch-everything combinator, so a muscle-memory rename of "catchAll" to "catch" is the whole fix for most call sites.
+**Drop the habit** of typing `catchAll`. In v4 the plain name `Effect.catch` is the catch-everything combinator, so renaming `catchAll` to `catch` fixes most call sites. It also carries the old trap: a catch-all does not see defects. See [Pitfalls](04-pitfalls.md), items 5 and 6.
 
 **Upstream:** `migration/error-handling.md`.
 
@@ -148,6 +150,8 @@ const program = Effect.gen(function*() {
 ```
 
 **Drop the habits:** `yield* fiber`, and the bare `fork`. For the removed combinators, fork the effects individually or use a higher-level concurrency combinator, and observe a forked fiber's failure through `Fiber.join` or `Fiber.await`. Note that "child" is now in the name: `forkChild` is the structured-concurrency fork, `forkDetach` is the one that outlives its parent.
+
+See [Pitfalls](04-pitfalls.md), item 22: a forked child ends with its parent.
 
 **Upstream:** `migration/forking.md` (the rename and the options), `migration/yieldable.md` ("Types No Longer Subtypes of Effect", for the fiber).
 
@@ -185,6 +189,8 @@ const program = Effect.gen(function*() {
 
 **Drop the habits:** `yield* ref`, `yield* deferred`, `yield* fiber`, and passing an `Option` or an `Either`-shaped value straight to an `Effect` combinator. When the compiler rejects one of these, the fix is the module function, not a cast.
 
+See [Pitfalls](04-pitfalls.md), item 18.
+
 **Upstream:** `migration/yieldable.md` (the rationale and the `Ref`, `Deferred` and `Fiber` cases hold; the `Option` and `Result` cases do not hold on 4.0.0).
 
 ---
@@ -198,6 +204,8 @@ const program = Effect.gen(function*() {
 **On 4.0.0 as published, that is not what happens.** Running `Effect.runPromise` or `Effect.runFork` over `Effect.never`, or over a `Deferred` nobody completes, exits with status 0 immediately. The only keep-alive timer in the package is installed by `Runtime.makeRunMain`, the runner factory that `NodeRuntime.runMain` is built on; a program run through `NodeRuntime.runMain` over `Effect.never` stays alive until signalled. Upstream's own test for this (`EffectKeepAlive.test.ts` at the tag) exercises `makeRunMain`, not `runPromise`. So the v3 rule survives: **the long-running entry point goes through `runMain`**, which also gives you signal handling, exit codes and error reporting.
 
 **Drop the habit** of believing either version of the story without running it. If your program's lifetime depends on a suspended fiber, run it through `runMain`; do not rely on `runPromise` to hold the process open.
+
+See [Pitfalls](04-pitfalls.md), item 17, for the measurements.
 
 **Upstream:** `migration/fiber-keep-alive.md` (its "runMain Is Still Recommended" section is the part that matches the package).
 
@@ -225,7 +233,8 @@ const program = Effect.gen(function*() {
 // Compose, then provide once. Memoization is a safety net, not the design.
 const main = program.pipe(Effect.provide(Db.layer))
 
-// A test that must not share state with its surroundings opts out.
+// `local: true` builds the layer with a private memo map. Where it sits decides
+// what it isolates, so verify by counting builds (see Pitfalls, "Layer sharing").
 const isolated = program.pipe(Effect.provide(Db.layer, { local: true }))
 ```
 
@@ -237,15 +246,15 @@ const isolated = program.pipe(Effect.provide(Db.layer, { local: true }))
 
 ## 10. FiberRef becomes Context.Reference
 
-**Was.** Fiber-local state was a `FiberRef`, read with `FiberRef.get`, written with `set`, and scoped with `locally`. The built-ins (`currentLogLevel` and friends) were `FiberRef` values.
+**Was.** Fiber-local state was a `FiberRef`, read with a `get`, written with `set`, and scoped with `locally`. The built-ins (`currentLogLevel` and friends) were `FiberRef` values.
 
-**Now.** `FiberRef`, `FiberRefs`, `FiberRefsPatch` and `Differ` are gone. Fiber-local state is a `Context.Reference`, the same mechanism as a service with a default. The built-ins live in the `References` module (`References.CurrentLogLevel`, `References.MinimumLogLevel`, `References.MaxOpsBeforeYield`, among others). You read one by yielding it; you scope a value over an effect with `Effect.provideService`.
+**Now.** The `FiberRef` module, `FiberRefs` and `FiberRefsPatch` are gone. Fiber-local state is a `Context.Reference`, the same mechanism as a service with a default. The built-ins live in the `References` module (`References.CurrentLogLevel`, `References.MinimumLogLevel`, `References.MaxOpsBeforeYield`, among others). You read one by yielding it; you scope a value over an effect with `Effect.provideService`.
 
 ```ts
 import { Effect, References } from "effect"
 
 const program = Effect.gen(function*() {
-  return yield* References.CurrentLogLevel
+  return yield* References.MinimumLogLevel
 })
 
 // Scoped to this effect only. There is no mutating set.
@@ -292,7 +301,7 @@ const main = Effect.gen(function*() {
 These are short. Each has an upstream guide; read it before relying on the one-line version here.
 
 - **Structural equality by default.** `Equal.equals` on plain objects, arrays, `Map`s, `Set`s and `Date`s now compares by value, and `NaN` equals `NaN`. A reference check you used to get from `Equal.equals` now needs `Equal.byReference`. The wrapper to `Equivalence` was renamed `Equal.asEquivalence`. Drop the habit of wrapping data in a `Data` constructor only to make equality structural. *Upstream:* `migration/equality.md`.
-- **`extend` on `Scope` is `Scope.provide`.** Same behaviour: it supplies a scope to an effect that requires one without closing the scope afterwards. *Upstream:* `migration/scope.md`.
+- **`extend` on `Scope` is `Scope.provide`.** Same behavior: it supplies a scope to an effect that requires one without closing the scope afterwards. *Upstream:* `migration/scope.md`.
 - **`Effect.gen` and `this`.** A `self` is no longer the first argument: pass `Effect.gen({ self: this }, function*() { ... })`. *Upstream:* `migration/generators.md`.
 - **Schema changed a lot.** Renamed decoders and encoders (the Effect-returning ones carry an `Effect` suffix), array arguments where v3 took variadic ones, and filters and field-picking restructured. This is the largest single guide and the one most worth reading in full before touching schema code. *Upstream:* `migration/schema.md`, which classifies each change as auto, semi-auto, manual or removed.
 - **Import paths.** Dropping the `unstable` path segment is covered in shift 1. The 4.0.0 specifier for the HTTP router is `effect/http/HttpRouter`.
