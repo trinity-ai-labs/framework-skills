@@ -28,6 +28,12 @@ Then enable auto-update: `/plugin` → **Marketplaces** → `trinity-ai-labs` �
 git clone https://github.com/trinity-ai-labs/framework-skills ~/.claude/skills/frameworks
 ```
 
+Before opening a pull request, run the same content checks CI runs, from any directory in the clone (needs only bash and Python 3):
+
+```bash
+bash scripts/check.sh
+```
+
 ---
 
 ## Using them
@@ -53,7 +59,8 @@ Several chapters ground a pattern in how a real application does it — those sa
 ```
 .
 ├── .claude-plugin/plugin.json
-├── .github/workflows/ci.yml     # frontmatter · manifest · TOC links · version bump
+├── .github/workflows/ci.yml     # runs scripts/check.sh · version bump (changes reaching main)
+├── scripts/check.sh             # frontmatter · identifier sweep · TOC links
 └── skills/
     ├── effect-v3/
     │   ├── SKILL.md             # the router
