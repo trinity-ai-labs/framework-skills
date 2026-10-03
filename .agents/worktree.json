@@ -1,0 +1,19 @@
+{
+  "integrationBranch": "main",
+  "bumpFiles": [".claude-plugin/plugin.json"],
+  "changelog": "CHANGELOG.md",
+  "docsPaths": [
+    {
+      "path": "README.md",
+      "when": "a skill is added, renamed or removed, a skill's scope boundary moves, or the install steps or repo layout change"
+    }
+  ],
+  "gate": "gh pr checks --watch --fail-fast",
+  "sharedResources": [
+    {
+      "resource": "the GitHub Actions run that gates each pull request",
+      "isolatedBy": "nothing isolates it and nothing needs to — every pull request gets its own run on its own runner, so concurrent gates do not contend; the checks read only the tracked files and git history of the PR being gated"
+    }
+  ],
+  "briefConventions": "No install step and no local check command: the gate is the CI run on the slice's own draft PR, so open the draft PR before gating and allow the checks a moment to register before watching them. CI's version-bump job fails any PR that changes skills/, .claude-plugin/, README.md or LICENSE without moving the version in .claude-plugin/plugin.json and adding a matching '## <version>' heading to CHANGELOG.md. Skills are public and generic: CI rejects a product name or a home-directory path anywhere under skills/. Every skill directory's SKILL.md frontmatter name must equal the directory name. Branch as feat/*, fix/*, docs/* or chore/*. This repo is PR-only: never push to main directly."
+}
