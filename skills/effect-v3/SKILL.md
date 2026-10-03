@@ -8,16 +8,17 @@ description: >-
   Stream/Sink, Schema & Config, logging/metrics/tracing, @effect/platform (HttpApi, HttpClient,
   runMain), @effect/sql, @effect/rpc, workers, @effect/vitest testing, @effect-atom reactive state —
   and when an `R`/`E` type won't resolve, learning an API, picking the idiomatic approach, or laying
-  out an Effect codebase. Covers Effect v3.x only; Effect v4 is out of scope.
+  out an Effect codebase. Selected by an installed `effect` 3.x (`effect@3`); for a project on `effect` 4.x use `effect-v4`
+  instead.
 ---
 
 # Effect v3 — the bible
 
-A thorough, source-verified reference for the **Effect v3 line** (the `effect` library) and its ecosystem — verified against **`effect@3.22.0`**, the current stable release. Every API here was checked against the actual source, backstopped by the official docs and best-practice research.
+A thorough, source-verified reference for the **Effect v3 line** (the `effect` library) and its ecosystem — verified against **`effect@3.22.0`** (the 3.x line's newest release is 3.22.2; v4 is the current stable major). Every API here was checked against the actual source, backstopped by the official docs and best-practice research.
 
 **How to use this skill:** this file is the router. Read the short *mental model* and *how to think* sections below to orient, then open the one `reference/NN-*.md` file for the topic at hand — each is a deep, standalone chapter. Don't load them all; load the one you need.
 
-> **v3 only.** Effect v4 exists as a public beta (npm `beta` tag) and is a rewrite with different semantics and a unified package versioning scheme. Nothing here describes v4 — do not mix v4 idioms into a v3 codebase. Check what the project actually depends on before writing code.
+> **v3 only.** Effect v4 is the current stable major (npm `latest`) — a rewrite with different semantics and consolidated packages. This skill covers the 3.x line only and nothing here describes v4; for a project on `effect` 4.x use `effect-v4`. Do not mix v4 idioms into a v3 codebase. Check what the project actually depends on before writing code.
 
 ---
 
@@ -129,8 +130,8 @@ Some common asks don't live in one file. Open both:
 
 ## Verifying against source
 
-When in doubt about an API, the source of truth is the Effect repo — `Effect-TS/effect`, **branch `v3`**. Grep the package source, e.g. `rg "export const retry" packages/effect/src/Effect.ts`. A local clone lives at `~/Code/Ozner/effect` when present.
+When in doubt about an API, the source of truth is the Effect repo — `Effect-TS/effect`, **branch `v3`**. Grep the package source, e.g. `rg "export const retry" packages/effect/src/Effect.ts`.
 
-⚠️ **`main` is the v4 development branch.** Grepping `main` (or pulling a clone that tracks it) gives you v4 APIs that don't exist in v3 — check out `v3` or the `effect@3.x` tag first, and treat a clone whose `packages/effect/package.json` reads `4.0.0-*` as the wrong tree for this skill. <https://effect.website/docs> still documents v3.
+⚠️ **`main` carries v4.** Grepping `main` (or pulling a clone that tracks it) gives you v4 APIs that don't exist in v3 — check out `v3` or the `effect@3.x` tag first, and treat a clone whose `packages/effect/package.json` reads `4.0.0` or later as the wrong tree for this skill.
 
 Never guess an API name; confirm it exists.
